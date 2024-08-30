@@ -1,0 +1,94 @@
+Notes from the testing-react-apps exercises
+
+01 # simple test with ReactDOM "The more your tests resemble the way your
+software is used, the more confidence they can give you." - kentcdodds
+
+Everything we do with testing our React components is walking the line of
+trade-offs of getting our tests to resemble the way our software is actually
+used and having something that's reasonably possible for testing.
+
+When we think about how things are used, we need to consider who the users are:
+
+1. The end user that's interacting with our code (clicking buttons/etc)
+2. The developer user that's actually using our code (rendering it, calling our
+   functions, etc.)
+
+To do this, you'll need to create a DOM node, add it to the body, and render the
+component to that DOM node. You'll also need to clean up the DOM when your test
+is finished so the next test has a clean DOM to interact with.
+
+02 # simple test with React Testing Library
+
+03 # Avoid implementation details
+
+04 # form testing
+
+You need to ensure that the user can find inputs in the form, fill in their
+information, and validate that when they submit the form the submitted data is
+correct.
+
+Make sure to keep your test implementation detail free and refactor friendly!
+
+### 2. 💯 generate test data
+
+An important thing to keep in mind when testing is simplifying the maintenance
+of the tests by reducing the amount of unrelated cruft in the test. You want to
+make it so the code for the test communicates what's important and what is not
+important.
+
+05 # mocking HTTP requests
+
+Place code as close to where it's relevant as possible
+You might also say: "Things that change together should be located as close as reasonable." (Dan Abramov said something like this to me once).
+
+06 # mocking Browser APIs and modules
+### Mocking Browser APIs
+```javascript
+import matchMediaPolyfill from 'mq-polyfill'
+
+beforeAll(() => {
+  matchMediaPolyfill(window)
+  window.resizeTo = function resizeTo(width, height) {
+    Object.assign(this, {
+      innerWidth: width,
+      innerHeight: height,
+      outerWidth: width,
+      outerHeight: height,
+    }).dispatchEvent(new this.Event('resize'))
+  }
+})
+```
+
+This allows me to continue to test with Jest (in node) while not actually
+running in a browser.
+
+### Mocking Modules
+```javascript
+// math.js
+export const add = (a, b) => a + b
+export const subtract = (a, b) => a - b
+
+// __tests__/some-test.js
+import {add, subtract} from '../math'
+
+jest.mock('../math')
+
+// now all the function exports from the "math.js" module are jest mock functions
+// so we can call .mockImplementation(...) on them
+// and make assertions like .toHaveBeenCalledTimes(...)
+```
+
+Additionally, if you'd like to mock only _parts_ of a module, you can provide
+your own "mock module getter" function:
+
+```javascript
+jest.mock('../math', () => {
+  const actualMath = jest.requireActual('../math')
+  return {
+    ...actualMath,
+    subtract: jest.fn(),
+  }
+})
+
+// now the `add` export is the normal function,
+// but the `subtract` export is a mock function.
